@@ -1,0 +1,10 @@
+[versions]
+kotlinnoop = "0.0.1-SNAPSHOT"
+ksp = "2.2.0-2.0.2"
+maven-publish = "0.34.0"
+
+[plugins]
+maven-publish = { id = "com.vanniktech.maven.publish", version.ref = "maven-publish" }
+
+[libraries]
+kotlin-ksp-api = { module = "com.google.devtools.ksp:symbol-processing-api", version.ref = "ksp" }
