@@ -7,6 +7,10 @@ plugins {
 group = "com.marekabaffy.kotlinnoop"
 version = libs.versions.kotlinnoop.get()
 
+kotlin {
+    jvmToolchain(17)
+}
+
 dependencies {
     implementation(libs.kotlin.ksp.api)
     implementation(libs.kotlinpoet)

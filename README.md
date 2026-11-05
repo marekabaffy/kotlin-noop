@@ -18,6 +18,14 @@ and classes.
 - Handles generic, nullable and function types, including `suspend` and receiver lambdas
 - Handles generic functions, `vararg` parameters, extension members, nested declarations and inherited members
 
+## 📋 Requirements
+
+| Tool   | Minimum |
+|--------|---------|
+| JDK    | 17      |
+| Kotlin | 2.2     |
+| KSP    | 2.3.12  |
+
 ## 🔧 Setup
 
 ### 1. Add KSP Plugin

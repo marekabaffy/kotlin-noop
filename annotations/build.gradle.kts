@@ -6,7 +6,18 @@ plugins {
 group = "com.marekabaffy.kotlinnoop"
 version = libs.versions.kotlinnoop.get()
 
+kotlin {
+    jvmToolchain(17)
+    compilerOptions {
+        // Compilers read metadata at most one version ahead, so this sets the oldest Kotlin that can use @NoOp.
+        languageVersion = org.jetbrains.kotlin.gradle.dsl.KotlinVersion.KOTLIN_2_2
+        apiVersion = org.jetbrains.kotlin.gradle.dsl.KotlinVersion.KOTLIN_2_2
+    }
+}
+
 dependencies {
+    // The annotation needs nothing from the standard library at runtime, so it must not raise the consumer's version.
+    compileOnly(kotlin("stdlib"))
     testImplementation(kotlin("test"))
 }
 
