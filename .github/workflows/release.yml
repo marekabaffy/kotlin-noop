@@ -54,10 +54,11 @@ jobs:
           ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.SIGNING_KEY_PASSWORD }}
       - name: Check the published files
         run: .github/scripts/check-artifacts.sh build/integration-test-repo "$VERSION"
+      # Each version loads its own compiler and KSP, which overflows metaspace in a shared daemon.
       - name: Test on current versions
-        run: ./gradlew -p integration-test build "-PVERSION_NAME=$VERSION"
+        run: ./gradlew -p integration-test build "-PVERSION_NAME=$VERSION" --no-daemon
       - name: Test on the oldest supported versions
-        run: ./gradlew -p integration-test build "-PVERSION_NAME=$VERSION" -PkotlinVersion=2.2.21 -PkspVersion=2.3.12
+        run: ./gradlew -p integration-test build "-PVERSION_NAME=$VERSION" -PkotlinVersion=2.2.21 -PkspVersion=2.3.12 --no-daemon
 
       # publishToMavenCentral stops at validation, and someone then clicks Publish in the Central Portal.
       # To release without that step, use publishAndReleaseToMavenCentral.
