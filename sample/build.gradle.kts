@@ -7,6 +7,8 @@ dependencies {
     implementation(projects.annotations)
 
     ksp(projects.processor)
+
+    testImplementation(kotlin("test"))
 }
 
 tasks.test {
