@@ -9,6 +9,10 @@ import com.google.devtools.ksp.processing.SymbolProcessorProvider
  */
 class NoOpAnnotationProcessorProvider : SymbolProcessorProvider {
     override fun create(environment: SymbolProcessorEnvironment): SymbolProcessor {
-        return NoOpAnnotationProcessor(environment).also(environment.registerProcessorForNewFeatures)
+        try {
+            return NoOpAnnotationProcessor(environment).also(environment.registerProcessorForNewFeatures)
+        } catch (_: NoSuchMethodError) {
+            throw IllegalStateException("@NoOp requires KSP 2.3.12 or newer. Update the com.google.devtools.ksp plugin.")
+        }
     }
 }
