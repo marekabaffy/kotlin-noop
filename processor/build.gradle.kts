@@ -12,10 +12,19 @@ dependencies {
     implementation(libs.kotlinpoet)
     implementation(libs.kotlinpoet.ksp)
     testImplementation(kotlin("test"))
+    testImplementation(projects.annotations)
+    testImplementation(libs.kctfork.ksp)
 }
 
 tasks.test {
     useJUnitPlatform()
+}
+
+// kctfork brings its own KSP version; tests must run the same KSP as the build.
+configurations.testRuntimeClasspath {
+    resolutionStrategy.eachDependency {
+        if (requested.group == "com.google.devtools.ksp") useVersion(libs.versions.ksp.get())
+    }
 }
 
 mavenPublishing {

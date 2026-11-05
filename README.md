@@ -177,6 +177,10 @@ get the defaults above, replacing their declared defaults. A `vararg` constructo
 - Abstract, sealed and inner classes, and classes with a private or missing primary constructor
 - Enums, objects and annotation classes
 
+Functions and properties with context parameters (`context(logger: Logger) fun log()`) are not supported, because
+KSP 2.3.13 does not report them. The generated override fails to compile with an "overrides nothing" error. A class
+constructor parameter with a context function type (`context(C) (T) -> R`) fails to compile for the same reason.
+
 Interface no-ops replace default method implementations too, so those methods also return the defaults above.
 
 Nested declarations include the outer names: `Outer.Inner` generates `NoOpOuterInner`.

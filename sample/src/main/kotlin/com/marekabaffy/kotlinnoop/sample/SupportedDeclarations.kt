@@ -16,15 +16,24 @@ interface Scalars {
     val doubleValue: Double
     val charValue: Char
     val stringValue: String
+    val ubyteValue: UByte
+    val ushortValue: UShort
     val uintValue: UInt
+    val ulongValue: ULong
     val nullableValue: String?
     var mutableValue: Int
 }
 
 @NoOp
 interface Arrays {
+    fun booleans(): BooleanArray
     fun bytes(): ByteArray
+    fun shorts(): ShortArray
     fun ints(): IntArray
+    fun longs(): LongArray
+    fun floats(): FloatArray
+    fun doubles(): DoubleArray
+    fun chars(): CharArray
     fun strings(): Array<String>
     fun projected(): Array<out CharSequence>
     fun starred(): Array<*>
@@ -38,6 +47,8 @@ interface Collections {
     fun set(): Set<Int>
     fun map(): Map<String, Int>
     fun sequence(): Sequence<Int>
+    fun mutableIterable(): MutableIterable<Int>
+    fun mutableCollection(): MutableCollection<Int>
     fun mutableList(): MutableList<Int>
     fun mutableSet(): MutableSet<Int>
     fun mutableMap(): MutableMap<String, Int>
@@ -76,7 +87,16 @@ interface Signatures {
     val String.extensionProperty: Int
     suspend fun suspending(value: Int): Int
     fun toString(radix: Int): String
+    fun equals(value: String?): Boolean
+    fun returnsNullableUnitLambda(): () -> Unit?
     fun hasDefaultImplementation(): Int = 42
+}
+
+@NoOp
+interface RedeclaresAny {
+    override fun toString(): String
+    override fun equals(other: Any?): Boolean
+    override fun hashCode(): Int
 }
 
 interface GenericParent<T> {

@@ -188,11 +188,9 @@ class NoOpAnnotationProcessor(
             .forEach { addFunction(noOpFunction(it, owner)) }
     }
 
-    private fun KSFunctionDeclaration.isAnyMember(): Boolean = when (simpleName.asString()) {
-        "equals" -> parameters.size == 1
-        "hashCode", "toString" -> parameters.isEmpty()
-        else -> false
-    }
+    /** Members inherited from `Any` keep their behaviour; only an interface's own redeclaration needs an override. */
+    private fun KSFunctionDeclaration.isAnyMember(): Boolean =
+        (parentDeclaration as? KSClassDeclaration)?.qualifiedName?.asString() == "kotlin.Any"
 
     private fun noOpProperty(property: KSPropertyDeclaration, owner: KSType): PropertySpec {
         val resolver = property.typeParameters.toTypeParameterResolver()
@@ -231,11 +229,20 @@ class NoOpAnnotationProcessor(
             )
         }
 
-        if (returnType.declaration.qualifiedName?.asString() != "kotlin.Unit" || returnType.isMarkedNullable) {
-            builder.addCode(returnStatement(returnType, resolver))
+        when {
+            function.isEqualsRedeclaration() -> builder.addStatement("return·this·===·%N", function.parameters.single().name!!.asString())
+            returnType.declaration.qualifiedName?.asString() != "kotlin.Unit" || returnType.isMarkedNullable ->
+                builder.addCode(returnStatement(returnType, resolver))
         }
         return builder.build()
     }
+
+    /** `equals` must stay reflexive, so a no-op that redeclares it compares by identity instead of returning false. */
+    private fun KSFunctionDeclaration.isEqualsRedeclaration(): Boolean =
+        simpleName.asString() == "equals" &&
+            parameters.singleOrNull()?.type?.resolve()?.let {
+                it.isMarkedNullable && it.declaration.qualifiedName?.asString() == "kotlin.Any"
+            } == true
 
     /**
      * Calls the primary constructor with a default for each parameter. A parameter with no known default

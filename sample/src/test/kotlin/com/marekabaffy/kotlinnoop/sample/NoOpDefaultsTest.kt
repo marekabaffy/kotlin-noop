@@ -7,6 +7,7 @@ import kotlin.coroutines.startCoroutine
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertSame
 import kotlin.test.assertTrue
@@ -24,7 +25,10 @@ class NoOpDefaultsTest {
         assertEquals(0.0, doubleValue)
         assertEquals('\u0000', charValue)
         assertEquals("", stringValue)
+        assertEquals(0.toUByte(), ubyteValue)
+        assertEquals(0.toUShort(), ushortValue)
         assertEquals(0u, uintValue)
+        assertEquals(0uL, ulongValue)
         assertNull(nullableValue)
     }
 
@@ -36,8 +40,14 @@ class NoOpDefaultsTest {
 
     @Test
     fun arraysAreEmpty() = with(NoOpArrays) {
+        assertEquals(0, booleans().size)
         assertEquals(0, bytes().size)
+        assertEquals(0, shorts().size)
         assertEquals(0, ints().size)
+        assertEquals(0, longs().size)
+        assertEquals(0, floats().size)
+        assertEquals(0, doubles().size)
+        assertEquals(0, chars().size)
         assertEquals(0, strings().size)
         assertEquals(0, projected().size)
         assertEquals(0, starred().size)
@@ -59,6 +69,8 @@ class NoOpDefaultsTest {
 
     @Test
     fun mutableCollectionsAcceptWrites() = with(NoOpCollections) {
+        assertEquals(emptyList(), mutableIterable().toList())
+        assertTrue(mutableCollection().add(1))
         assertTrue(mutableList().add(1))
         assertTrue(mutableSet().add(1))
         assertNull(mutableMap().put("key", 1))
@@ -99,6 +111,8 @@ class NoOpDefaultsTest {
         assertEquals(0, "receiver".extensionProperty)
         assertEquals(0, runSuspending { suspending(1) })
         assertEquals("", toString(16))
+        assertFalse(equals(value = null))
+        assertNull(returnsNullableUnitLambda()())
     }
 
     @Test
@@ -110,6 +124,15 @@ class NoOpDefaultsTest {
     fun anyMembersKeepTheirBehaviour() {
         assertTrue(NoOpSignatures.toString().contains("NoOpSignatures"))
         assertEquals(NoOpSignatures, NoOpSignatures)
+    }
+
+    @Test
+    fun redeclaredAnyMembersGetDefaults() {
+        val noOp: RedeclaresAny = NoOpRedeclaresAny
+        assertEquals("", noOp.toString())
+        assertEquals(0, noOp.hashCode())
+        assertEquals(noOp, noOp)
+        assertFalse(noOp.equals("other"))
     }
 
     @Test
