@@ -9,6 +9,6 @@ import com.google.devtools.ksp.processing.SymbolProcessorProvider
  */
 class NoOpAnnotationProcessorProvider : SymbolProcessorProvider {
     override fun create(environment: SymbolProcessorEnvironment): SymbolProcessor {
-        return NoOpAnnotationProcessor(environment)
+        return NoOpAnnotationProcessor(environment).also(environment.registerProcessorForNewFeatures)
     }
 }
