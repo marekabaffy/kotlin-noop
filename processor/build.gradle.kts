@@ -31,6 +31,16 @@ configurations.testRuntimeClasspath {
     }
 }
 
+publishing {
+    repositories {
+        // Holds the jars that the integration-test build tests. Root `clean` removes it.
+        maven {
+            name = "integrationTest"
+            url = uri(rootProject.layout.buildDirectory.dir("integration-test-repo"))
+        }
+    }
+}
+
 mavenPublishing {
     publishToMavenCentral()
 
