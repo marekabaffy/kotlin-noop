@@ -45,24 +45,24 @@ jobs:
       - name: Extract the release notes
         run: .github/scripts/release-notes.sh "$VERSION" > release-notes.md
 
-      - run: ./gradlew build "-PreleaseVersion=$VERSION"
+      - run: ./gradlew build "-PVERSION_NAME=$VERSION"
 
       - name: Publish signed jars to the integration test repository
-        run: ./gradlew publishAllPublicationsToIntegrationTestRepository "-PreleaseVersion=$VERSION"
+        run: ./gradlew publishAllPublicationsToIntegrationTestRepository "-PVERSION_NAME=$VERSION"
         env:
           ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.SIGNING_KEY }}
           ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.SIGNING_KEY_PASSWORD }}
       - name: Check the published files
         run: .github/scripts/check-artifacts.sh build/integration-test-repo "$VERSION"
       - name: Test on current versions
-        run: ./gradlew -p integration-test build "-PreleaseVersion=$VERSION"
+        run: ./gradlew -p integration-test build "-PVERSION_NAME=$VERSION"
       - name: Test on the oldest supported versions
-        run: ./gradlew -p integration-test build "-PreleaseVersion=$VERSION" -PkotlinVersion=2.2.21 -PkspVersion=2.3.12
+        run: ./gradlew -p integration-test build "-PVERSION_NAME=$VERSION" -PkotlinVersion=2.2.21 -PkspVersion=2.3.12
 
       # publishToMavenCentral stops at validation, and someone then clicks Publish in the Central Portal.
       # To release without that step, use publishAndReleaseToMavenCentral.
       - name: Upload to Maven Central
-        run: ./gradlew publishToMavenCentral "-PreleaseVersion=$VERSION"
+        run: ./gradlew publishToMavenCentral "-PVERSION_NAME=$VERSION"
         env:
           ORG_GRADLE_PROJECT_mavenCentralUsername: ${{ secrets.CENTRAL_USERNAME }}
           ORG_GRADLE_PROJECT_mavenCentralPassword: ${{ secrets.CENTRAL_PASSWORD }}

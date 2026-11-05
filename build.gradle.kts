@@ -4,6 +4,4 @@ plugins {
     alias(libs.plugins.kotlin.jvm) apply false
 }
 
-group = "com.marekabaffy.kotlinnoop"
-version = libs.versions.kotlinnoop.get()
 

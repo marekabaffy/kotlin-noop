@@ -45,7 +45,7 @@ private const val NO_OP_ANNOTATION = "com.marekabaffy.kotlinnoop.annotations.NoO
 /**
  * KSP processor that generates no-operation implementations for @NoOp annotated classes.
  */
-class NoOpAnnotationProcessor(
+internal class NoOpAnnotationProcessor(
     environment: SymbolProcessorEnvironment
 ) : SymbolProcessor {
 

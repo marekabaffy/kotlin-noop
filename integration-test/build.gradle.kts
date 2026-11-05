@@ -12,9 +12,16 @@ kotlin {
     }
 }
 
+// -PVERSION_NAME tests a specific version, as the release workflow does. The default is the main build's version.
+val noOpVersion = providers.gradleProperty("VERSION_NAME").orElse(
+    providers.fileContents(layout.projectDirectory.file("../gradle.properties")).asText.map {
+        Regex("^VERSION_NAME=(.+)$", RegexOption.MULTILINE).find(it)!!.groupValues[1]
+    }
+).get()
+
 dependencies {
-    implementation("com.marekabaffy.kotlinnoop:kotlinnoop-annotations:${libs.versions.kotlinnoop.get()}")
-    ksp("com.marekabaffy.kotlinnoop:kotlinnoop-ksp:${libs.versions.kotlinnoop.get()}")
+    implementation("com.marekabaffy.kotlinnoop:kotlinnoop-annotations:$noOpVersion")
+    ksp("com.marekabaffy.kotlinnoop:kotlinnoop-ksp:$noOpVersion")
 
     testImplementation(kotlin("test"))
 }

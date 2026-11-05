@@ -12,12 +12,6 @@ dependencyResolutionManagement {
     repositories {
         mavenCentral()
     }
-    versionCatalogs {
-        create("libs") {
-            // The release workflow passes the tag, so the catalog can keep its snapshot version between releases.
-            providers.gradleProperty("releaseVersion").orNull?.let { version("kotlinnoop", it) }
-        }
-    }
 }
 
 include(
