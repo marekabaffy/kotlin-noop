@@ -18,7 +18,7 @@ class NoOpAnnotationProcessor(
 
     override fun process(resolver: Resolver): List<KSAnnotated> {
         val symbols = resolver.getSymbolsWithAnnotation("com.marekabaffy.kotlinnoop.annotations.NoOp")
-        val unableToProcess = symbols.filterNot { it.validate() }.toMutableList()
+        val unableToProcess = symbols.filterNot { it.validate(enableNewFeatures = true) }.toMutableList()
 
         symbols
             .filterIsInstance<KSClassDeclaration>()

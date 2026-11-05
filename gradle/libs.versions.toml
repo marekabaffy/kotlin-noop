@@ -1,9 +1,12 @@
 [versions]
 kotlinnoop = "0.0.1-SNAPSHOT"
-ksp = "2.2.0-2.0.2"
-maven-publish = "0.34.0"
+kotlin = "2.4.21"
+ksp = "2.3.13"
+maven-publish = "0.37.0"
 
 [plugins]
+kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
+ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 maven-publish = { id = "com.vanniktech.maven.publish", version.ref = "maven-publish" }
 
 [libraries]
