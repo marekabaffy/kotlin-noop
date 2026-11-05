@@ -35,6 +35,12 @@ publishing {
     }
 }
 
+tasks.withType<Jar>().configureEach {
+    metaInf {
+        from(rootProject.file("LICENSE"))
+    }
+}
+
 mavenPublishing {
     publishToMavenCentral()
 
