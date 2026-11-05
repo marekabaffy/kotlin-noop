@@ -9,6 +9,8 @@ version = libs.versions.kotlinnoop
 
 dependencies {
     implementation(libs.kotlin.ksp.api)
+    implementation(libs.kotlinpoet)
+    implementation(libs.kotlinpoet.ksp)
     testImplementation(kotlin("test"))
 }
 
