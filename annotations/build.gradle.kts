@@ -4,7 +4,7 @@ plugins {
 }
 
 group = "com.marekabaffy.kotlinnoop"
-version = libs.versions.kotlinnoop
+version = libs.versions.kotlinnoop.get()
 
 dependencies {
     testImplementation(kotlin("test"))

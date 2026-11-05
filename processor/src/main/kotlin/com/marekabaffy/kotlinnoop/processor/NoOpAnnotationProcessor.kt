@@ -52,6 +52,9 @@ class NoOpAnnotationProcessor(
     private val logger = environment.logger
     private val codeGenerator = environment.codeGenerator
 
+    /** Declarations by generated file, compared ignoring case because some file systems do. */
+    private val generatedFiles = mutableMapOf<String, String>()
+
     override fun process(resolver: Resolver): List<KSAnnotated> {
         val (valid, deferred) = resolver.getSymbolsWithAnnotation(NO_OP_ANNOTATION)
             .partition { it.validate(enableNewFeatures = true) }
@@ -67,7 +70,7 @@ class NoOpAnnotationProcessor(
         } else {
             annotated
         }
-        val unsupportedReason = unsupportedReason(target)
+        val unsupportedReason = unsupportedReason(annotated, target)
         if (unsupportedReason != null) {
             logger.error("@NoOp $unsupportedReason", annotated)
             return
@@ -80,7 +83,7 @@ class NoOpAnnotationProcessor(
             directFile(target, flatName)
         } ?: return
 
-        builder
+        val file = builder
             .addAnnotation(
                 AnnotationSpec.builder(Suppress::class)
                     .useSiteTarget(AnnotationSpec.UseSiteTarget.FILE)
@@ -88,11 +91,21 @@ class NoOpAnnotationProcessor(
                     .build()
             )
             .build()
-            .writeTo(codeGenerator, Dependencies(true, target.containingFile!!))
+
+        val declaration = target.toClassName().canonicalName
+        val collision = generatedFiles.putIfAbsent("${file.packageName}.${file.name}".lowercase(), declaration)
+        if (collision != null) {
+            logger.error(
+                "@NoOp generates '${file.name}' for both $collision and $declaration. Rename one of them.",
+                annotated
+            )
+            return
+        }
+        file.writeTo(codeGenerator, Dependencies(true, target.containingFile!!))
     }
 
-    /** Returns why [target] cannot have a no-op, or null when it can. */
-    private fun unsupportedReason(target: KSClassDeclaration): String? {
+    /** Returns why [target], reached through [annotated], cannot have a no-op, or null when it can. */
+    private fun unsupportedReason(annotated: KSClassDeclaration, target: KSClassDeclaration): String? {
         val enclosing = generateSequence<KSDeclaration>(target) { it.parentDeclaration }
         return when {
             target.classKind != ClassKind.INTERFACE && target.classKind != ClassKind.CLASS ->
@@ -104,6 +117,10 @@ class NoOpAnnotationProcessor(
             enclosing.any { it.getVisibility() == Visibility.PRIVATE || it.getVisibility() == Visibility.PROTECTED } ->
                 "does not support private or protected declarations, because generated code cannot access them."
 
+            target.classKind == ClassKind.INTERFACE && annotated.isCompanionObject && Modifier.SEALED in target.modifiers ->
+                "does not support companion objects of sealed interfaces, because an anonymous object cannot " +
+                    "extend one. Annotate the interface instead."
+
             target.classKind == ClassKind.INTERFACE -> null
 
             Modifier.ABSTRACT in target.modifiers || Modifier.SEALED in target.modifiers ->
@@ -114,8 +131,8 @@ class NoOpAnnotationProcessor(
 
             target.primaryConstructor == null -> "on a class requires a primary constructor."
 
-            target.primaryConstructor?.getVisibility() == Visibility.PRIVATE ->
-                "does not support classes with a private primary constructor."
+            target.primaryConstructor?.getVisibility().let { it == Visibility.PRIVATE || it == Visibility.PROTECTED } ->
+                "does not support classes with a private or protected primary constructor."
 
             else -> null
         }
@@ -351,9 +368,9 @@ class NoOpAnnotationProcessor(
 
     /** `emptyArray` is reified, so an array of a type parameter has no default. */
     private fun emptyArray(type: KSType): CodeBlock? {
-        val elementType = type.arguments.single().type?.resolve() ?: return CodeBlock.of("emptyArray<Any?>()")
+        val elementType = type.arguments.single().type?.resolve() ?: return CodeBlock.of("kotlin.emptyArray<kotlin.Any?>()")
         return if (elementType.declaration is KSClassDeclaration || elementType.declaration is KSTypeAlias) {
-            CodeBlock.of("emptyArray()")
+            CodeBlock.of("kotlin.emptyArray()")
         } else {
             null
         }
@@ -370,13 +387,14 @@ class NoOpAnnotationProcessor(
         return CodeBlock.of("{·$arrow%L·}", defaultValue(returnType, resolver) ?: unsupported(returnType))
     }
 
+    /** Factories are fully qualified, so a member or parameter sharing a factory's name cannot capture the call. */
     private companion object {
         val UNSUPPORTED_OPERATION = ClassName("kotlin", "UnsupportedOperationException")
         val FUNCTION_TYPE = Regex("""kotlin\.Function\d+""")
         val SUSPEND_FUNCTION_TYPE = Regex("""kotlin\.coroutines\.SuspendFunction\d+""")
 
         val DEFAULT_VALUES = mapOf(
-            "kotlin.Unit" to "Unit",
+            "kotlin.Unit" to "kotlin.Unit",
             "kotlin.Boolean" to "false",
             "kotlin.Byte" to "0",
             "kotlin.Short" to "0",
@@ -390,25 +408,25 @@ class NoOpAnnotationProcessor(
             "kotlin.ULong" to "0uL",
             "kotlin.Char" to "'\\u0000'",
             "kotlin.String" to "\"\"",
-            "kotlin.BooleanArray" to "booleanArrayOf()",
-            "kotlin.ByteArray" to "byteArrayOf()",
-            "kotlin.ShortArray" to "shortArrayOf()",
-            "kotlin.IntArray" to "intArrayOf()",
-            "kotlin.LongArray" to "longArrayOf()",
-            "kotlin.FloatArray" to "floatArrayOf()",
-            "kotlin.DoubleArray" to "doubleArrayOf()",
-            "kotlin.CharArray" to "charArrayOf()",
-            "kotlin.collections.Iterable" to "emptyList()",
-            "kotlin.collections.Collection" to "emptyList()",
-            "kotlin.collections.List" to "emptyList()",
-            "kotlin.collections.Set" to "emptySet()",
-            "kotlin.collections.Map" to "emptyMap()",
-            "kotlin.collections.MutableIterable" to "mutableListOf()",
-            "kotlin.collections.MutableCollection" to "mutableListOf()",
-            "kotlin.collections.MutableList" to "mutableListOf()",
-            "kotlin.collections.MutableSet" to "mutableSetOf()",
-            "kotlin.collections.MutableMap" to "mutableMapOf()",
-            "kotlin.sequences.Sequence" to "emptySequence()",
+            "kotlin.BooleanArray" to "kotlin.booleanArrayOf()",
+            "kotlin.ByteArray" to "kotlin.byteArrayOf()",
+            "kotlin.ShortArray" to "kotlin.shortArrayOf()",
+            "kotlin.IntArray" to "kotlin.intArrayOf()",
+            "kotlin.LongArray" to "kotlin.longArrayOf()",
+            "kotlin.FloatArray" to "kotlin.floatArrayOf()",
+            "kotlin.DoubleArray" to "kotlin.doubleArrayOf()",
+            "kotlin.CharArray" to "kotlin.charArrayOf()",
+            "kotlin.collections.Iterable" to "kotlin.collections.emptyList()",
+            "kotlin.collections.Collection" to "kotlin.collections.emptyList()",
+            "kotlin.collections.List" to "kotlin.collections.emptyList()",
+            "kotlin.collections.Set" to "kotlin.collections.emptySet()",
+            "kotlin.collections.Map" to "kotlin.collections.emptyMap()",
+            "kotlin.collections.MutableIterable" to "kotlin.collections.mutableListOf()",
+            "kotlin.collections.MutableCollection" to "kotlin.collections.mutableListOf()",
+            "kotlin.collections.MutableList" to "kotlin.collections.mutableListOf()",
+            "kotlin.collections.MutableSet" to "kotlin.collections.mutableSetOf()",
+            "kotlin.collections.MutableMap" to "kotlin.collections.mutableMapOf()",
+            "kotlin.sequences.Sequence" to "kotlin.sequences.emptySequence()",
         )
     }
 }
