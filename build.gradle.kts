@@ -1,6 +1,6 @@
 plugins {
-    id("com.google.devtools.ksp") version "2.2.0-2.0.2" apply false
-    kotlin("jvm") version "2.2.0"
+    alias(libs.plugins.ksp) apply false
+    alias(libs.plugins.kotlin.jvm)
 }
 
 group = "com.marekabaffy.kotlinnoop"
