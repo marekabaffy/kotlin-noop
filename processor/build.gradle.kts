@@ -5,7 +5,7 @@ plugins {
 }
 
 group = "com.marekabaffy.kotlinnoop"
-version = libs.versions.kotlinnoop
+version = libs.versions.kotlinnoop.get()
 
 dependencies {
     implementation(libs.kotlin.ksp.api)

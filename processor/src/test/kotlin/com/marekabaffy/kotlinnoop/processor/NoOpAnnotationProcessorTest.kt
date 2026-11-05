@@ -128,6 +128,38 @@ class NoOpAnnotationProcessorTest {
                 fun g(): (context(String) () -> Unit)?
             }
         """,
+        "parameters named like factories" to """
+            @NoOp interface A {
+                fun f(emptyList: Int): List<Int>
+                fun g(mutableListOf: Int): MutableList<*>
+                fun h(emptyArray: Int): Array<*>
+                fun i(Unit: Int): () -> Unit
+            }
+        """,
+        "same package declarations named like factories" to """
+            fun emptyList(): Int = 1
+            fun mutableMapOf(): Int = 1
+            fun intArrayOf(): Int = 1
+            @NoOp class A(val a: List<Int>, val b: MutableMap<String, Int>, val c: IntArray)
+            @NoOp interface B { fun a(): List<Int>; fun b(): MutableMap<String, Int>; fun c(): IntArray }
+        """,
+        "same package types named like kotlin types" to """
+            class List
+            class String
+            class Unit
+            @NoOp interface A {
+                fun f(): kotlin.collections.List<kotlin.Int>
+                fun g(): kotlin.String
+                fun h(): () -> kotlin.Unit
+                fun i(x: List): String?
+            }
+        """,
+        "member shadowing the Unit value" to """
+            typealias Nothingness = Unit
+            @NoOp interface A { val Unit: Int; fun f(): Nothingness }
+        """,
+        "interface and its companion both annotated" to "@NoOp interface A { fun f(); @NoOp companion object }",
+        "internal constructor" to "@NoOp class A internal constructor(val x: Int)",
         "fun interface" to "@NoOp fun interface A { fun f(x: Int): Int }",
         "sealed interface" to "@NoOp sealed interface A { fun f() }",
         "java and generic supertypes" to "@NoOp interface A : Runnable, Comparable<A>",
@@ -193,12 +225,15 @@ class NoOpAnnotationProcessorTest {
             Triple("private class", "@NoOp private class A", inaccessible),
             Triple("inside private", "class O { private interface I { @NoOp interface A } }", inaccessible),
             Triple("protected interface", "abstract class O { @NoOp protected interface A }", inaccessible),
-            Triple("private companion", "class A private constructor() { @NoOp private companion object }", "@NoOp does not support classes with a private primary constructor."),
+            Triple("private companion", "class A private constructor() { @NoOp private companion object }", "@NoOp does not support classes with a private or protected primary constructor."),
             Triple("abstract class", "@NoOp abstract class A(val x: Int)", notInstantiable),
             Triple("sealed class", "@NoOp sealed class A(val x: Int)", notInstantiable),
             Triple("abstract class companion", "abstract class A { @NoOp companion object }", notInstantiable),
             Triple("inner class", "class O { @NoOp inner class A(val x: Int) }", "@NoOp does not support inner classes"),
-            Triple("private constructor", "@NoOp class A private constructor(val x: Int)", "@NoOp does not support classes with a private primary constructor."),
+            Triple("private constructor", "@NoOp class A private constructor(val x: Int)", "@NoOp does not support classes with a private or protected primary constructor."),
+            Triple("protected constructor", "@NoOp open class A protected constructor(val x: Int)", "@NoOp does not support classes with a private or protected primary constructor."),
+            Triple("protected constructor companion", "open class A protected constructor(val x: Int) { @NoOp companion object }", "@NoOp does not support classes with a private or protected primary constructor."),
+            Triple("sealed interface companion", "sealed interface A { @NoOp companion object }", "@NoOp does not support companion objects of sealed interfaces"),
             Triple("no primary constructor", "@NoOp class A { constructor(x: Int) }", "@NoOp on a class requires a primary constructor."),
             Triple("companion without primary constructor", "class A { constructor(x: Int); @NoOp companion object }", "@NoOp on a class requires a primary constructor."),
             Triple("parameter without a default", "class P\n@NoOp class A(val p: P)", "@NoOp has no default for parameter 'p' of type P."),
@@ -243,6 +278,69 @@ class NoOpAnnotationProcessorTest {
     fun processorOptsInToNewFeatures() {
         val outcome = compile("@NoOp interface A")
         assertFalse("has not opted in" in outcome.messages, outcome.messages)
+    }
+
+    @TestFactory
+    fun generatedNameCollisionsAreRejected(): List<DynamicTest> = listOf(
+        Triple(
+            "nested and top level",
+            "class Outer { @NoOp interface Inner }\n@NoOp interface OuterInner",
+            "@NoOp generates 'NoOpOuterInner' for both"
+        ),
+        Triple(
+            "two nesting shapes",
+            "class AB { @NoOp interface C }\nclass A { class BC; @NoOp interface BC2 }\nclass A2 { class B { @NoOp interface C } }\n@NoOp interface ABC",
+            "@NoOp generates 'NoOpABC' for both"
+        ),
+        Triple(
+            "companions",
+            "class Outer { interface Inner { @NoOp companion object } }\ninterface OuterInner { @NoOp companion object }",
+            "@NoOp generates 'OuterInnerCompanionNoOp' for both"
+        ),
+        Triple(
+            "names differing only by case",
+            "@NoOp interface Foo\n@NoOp interface FOO",
+            "for both test.Foo and test.FOO"
+        ),
+    ).map { (name, source, message) ->
+        dynamicTest(name) {
+            val outcome = compile(source)
+            assertEquals(ExitCode.COMPILATION_ERROR, outcome.exitCode, outcome.messages)
+            assertContains(outcome.messages, message)
+            assertFalse("FileAlreadyExists" in outcome.messages, outcome.messages)
+        }
+    }
+
+    @Test
+    fun sameNameInDifferentPackagesIsNotACollision() {
+        val outcome = compile(
+            sources = listOf(
+                source("first/Source.kt", "first", "@NoOp interface A"),
+                source("second/Source.kt", "second", "@NoOp interface A"),
+            )
+        )
+        assertEquals(ExitCode.OK, outcome.exitCode, outcome.messages)
+        assertEquals(listOf("NoOpA.kt", "NoOpA.kt"), outcome.generatedFileNames)
+    }
+
+    /** The fully qualified call has a known limit, which fails at compile time rather than at runtime. */
+    @Test
+    fun aMemberNamedKotlinIsALimitation() {
+        val outcome = compile("@NoOp interface A { val kotlin: Int; fun f(): List<Int> }")
+        assertEquals(ExitCode.COMPILATION_ERROR, outcome.exitCode, outcome.messages)
+    }
+
+    @Test
+    fun factoryCallsAreFullyQualified() {
+        val generated = compile(
+            "@NoOp interface A { fun a(): List<Int>; fun b(): MutableSet<Int>; fun c(): Sequence<Int>; fun d(): IntArray; fun e(): Array<String>; fun f(): Array<*> }"
+        ).generatedSources
+        assertContains(generated, "kotlin.collections.emptyList()")
+        assertContains(generated, "kotlin.collections.mutableSetOf()")
+        assertContains(generated, "kotlin.sequences.emptySequence()")
+        assertContains(generated, "kotlin.intArrayOf()")
+        assertContains(generated, "kotlin.emptyArray()")
+        assertContains(generated, "kotlin.emptyArray<kotlin.Any?>()")
     }
 
     @Test
@@ -329,8 +427,8 @@ class NoOpAnnotationProcessorTest {
         ).generatedSources
         assertContains(generated, "@file:Suppress(\"unused\")")
         assertFalse("Unit }" in generated.replace("-> Unit", ""), generated)
-        assertFalse("return Unit" in generated, generated)
-        assertFalse("= Unit" in generated, generated)
+        assertFalse("return kotlin.Unit" in generated, generated)
+        assertFalse("= kotlin.Unit" in generated, generated)
     }
 
     @Test
@@ -346,7 +444,7 @@ class NoOpAnnotationProcessorTest {
     private class Outcome(val exitCode: ExitCode, val messages: String, private val workingDir: File) {
         private val generatedFiles: List<File>
             get() = workingDir.walkTopDown()
-                .filter { it.extension == "kt" && it.name != SOURCE_FILE_NAME }
+                .filter { it.extension == "kt" && it.name != SOURCE_FILE_NAME && it.name != "Source.kt" }
                 .sortedBy { it.name }
                 .toList()
 
@@ -354,14 +452,17 @@ class NoOpAnnotationProcessorTest {
         val generatedSources: String get() = generatedFiles.joinToString("\n") { it.readText() }
     }
 
-    private fun compile(source: String, vararg extraProviders: SymbolProcessorProvider): Outcome {
+    private fun source(fileName: String, packageName: String, body: String) = SourceFile.kotlin(
+        fileName,
+        "package $packageName\n\nimport com.marekabaffy.kotlinnoop.annotations.NoOp\n\n${body.trimIndent()}\n"
+    )
+
+    private fun compile(source: String, vararg extraProviders: SymbolProcessorProvider): Outcome =
+        compile(listOf(source(SOURCE_FILE_NAME, "test", source)), *extraProviders)
+
+    private fun compile(sources: List<SourceFile>, vararg extraProviders: SymbolProcessorProvider): Outcome {
         val compilation = KotlinCompilation().apply {
-            sources = listOf(
-                SourceFile.kotlin(
-                    SOURCE_FILE_NAME,
-                    "package test\n\nimport com.marekabaffy.kotlinnoop.annotations.NoOp\n\n${source.trimIndent()}\n"
-                )
-            )
+            this.sources = sources
             inheritClassPath = true
             messageOutputStream = ByteArrayOutputStream()
             useKsp2()

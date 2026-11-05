@@ -93,6 +93,19 @@ interface Signatures {
 }
 
 @NoOp
+interface MembersNamedLikeFactories {
+    fun emptyList(): List<Int>
+    fun emptySet(): Set<Int>
+    fun emptyMap(): Map<String, Int>
+    fun emptySequence(): Sequence<Int>
+    fun emptyArray(): Array<String>
+    fun intArrayOf(): IntArray
+    fun mutableListOf(): MutableList<Int>
+    fun mutableSetOf(): MutableSet<*>
+    fun mutableMapOf(): MutableMap<String, Int>
+}
+
+@NoOp
 interface RedeclaresAny {
     override fun toString(): String
     override fun equals(other: Any?): Boolean

@@ -174,7 +174,8 @@ get the defaults above, replacing their declared defaults. A `vararg` constructo
 
 - Generic interfaces and classes, because the no-op has no type arguments to use
 - Private or protected declarations, including those nested in one
-- Abstract, sealed and inner classes, and classes with a private or missing primary constructor
+- Abstract, sealed and inner classes, and classes with a private, protected or missing primary constructor
+- Companion objects of sealed interfaces (annotate the sealed interface itself instead)
 - Enums, objects and annotation classes
 
 Functions and properties with context parameters (`context(logger: Logger) fun log()`) are not supported, because
@@ -183,4 +184,8 @@ constructor parameter with a context function type (`context(C) (T) -> R`) fails
 
 Interface no-ops replace default method implementations too, so those methods also return the defaults above.
 
-Nested declarations include the outer names: `Outer.Inner` generates `NoOpOuterInner`.
+Nested declarations include the outer names: `Outer.Inner` generates `NoOpOuterInner`. If two declarations in a package
+would generate the same file name, ignoring case, `@NoOp` reports a compile error naming both.
+
+Generated code calls `kotlin.collections.emptyList()` and similar by their full names, so an interface with a member
+or parameter named `kotlin` fails to compile.

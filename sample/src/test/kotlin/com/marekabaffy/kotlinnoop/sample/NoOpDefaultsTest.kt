@@ -127,6 +127,20 @@ class NoOpDefaultsTest {
     }
 
     @Test
+    fun membersNamedLikeFactoriesDoNotCallThemselves() {
+        val noOp: MembersNamedLikeFactories = NoOpMembersNamedLikeFactories
+        assertTrue(noOp.emptyList().isEmpty())
+        assertTrue(noOp.emptySet().isEmpty())
+        assertTrue(noOp.emptyMap().isEmpty())
+        assertEquals(0, noOp.emptySequence().count())
+        assertEquals(0, noOp.emptyArray().size)
+        assertEquals(0, noOp.intArrayOf().size)
+        assertTrue(noOp.mutableListOf().isEmpty())
+        assertTrue(noOp.mutableSetOf().isEmpty())
+        assertTrue(noOp.mutableMapOf().isEmpty())
+    }
+
+    @Test
     fun redeclaredAnyMembersGetDefaults() {
         val noOp: RedeclaresAny = NoOpRedeclaresAny
         assertEquals("", noOp.toString())
