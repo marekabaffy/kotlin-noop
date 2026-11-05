@@ -9,4 +9,4 @@ package com.marekabaffy.kotlinnoop.annotations
  */
 @Target(AnnotationTarget.CLASS)
 @Retention(AnnotationRetention.SOURCE)
-annotation class NoOp
+public annotation class NoOp

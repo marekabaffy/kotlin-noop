@@ -7,7 +7,7 @@ import com.google.devtools.ksp.processing.SymbolProcessorProvider
 /**
  * KSP provider that creates NoOpAnnotationProcessor instances.
  */
-class NoOpAnnotationProcessorProvider : SymbolProcessorProvider {
+public class NoOpAnnotationProcessorProvider : SymbolProcessorProvider {
     override fun create(environment: SymbolProcessorEnvironment): SymbolProcessor {
         try {
             return NoOpAnnotationProcessor(environment).also(environment.registerProcessorForNewFeatures)
